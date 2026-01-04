@@ -23,7 +23,7 @@ import QtQuick.Layouts 1.12
 import QtGraphicalEffects 1.0
 
 import FishUI 1.0 as FishUI
-import Cutefish.StatusBar 1.0
+import Wayfish.StatusBar 1.0
 
 Item {
     id: control

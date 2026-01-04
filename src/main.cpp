@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication app(argc, argv);
 
-    const char *uri = "Cutefish.StatusBar";
+    const char *uri = "Wayfish.StatusBar";
     qmlRegisterType<SystemTrayModel>(uri, 1, 0, "SystemTrayModel");
     qmlRegisterType<ControlCenterDialog>(uri, 1, 0, "ControlCenterDialog");
     qmlRegisterType<Appearance>(uri, 1, 0, "Appearance");
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
     StatusBar bar;
 
-    if (!QDBusConnection::sessionBus().registerService("com.cutefish.Statusbar")) {
+    if (!QDBusConnection::sessionBus().registerService("com.wayfish.Statusbar")) {
         return -1;
     }
 

@@ -23,6 +23,14 @@
 #include <QQuickView>
 #include "activity.h"
 
+namespace KWayland
+{
+namespace Client
+{
+class PlasmaShellSurface;
+}
+}
+
 class StatusBar : public QQuickView
 {
     Q_OBJECT
@@ -51,9 +59,13 @@ private slots:
     void onPrimaryScreenChanged(QScreen *screen);
 
 private:
+    void setupWaylandPanelSurface();
+    void updateWaylandPanelSurface();
+
     QRect m_screenRect;
     Activity *m_acticity;
     bool m_twentyFourTime;
+    KWayland::Client::PlasmaShellSurface *m_plasmaShellSurface;
 };
 
 #endif // STATUSBAR_H

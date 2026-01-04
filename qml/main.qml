@@ -23,7 +23,7 @@ import QtQuick.Controls 2.12
 import QtQuick.Window 2.12
 
 import Cutefish.System 1.0 as System
-import Cutefish.StatusBar 1.0
+import Wayfish.StatusBar 1.0
 import Cutefish.NetworkManagement 1.0 as NM
 import FishUI 1.0 as FishUI
 

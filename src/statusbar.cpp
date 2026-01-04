@@ -30,14 +30,23 @@
 #include <QApplication>
 #include <QSettings>
 #include <QScreen>
+#include <QDebug>
 
 #include <NETWM>
 #include <KWindowSystem>
 #include <KWindowEffects>
 
+#include <KWayland/Client/connection_thread.h>
+#include <KWayland/Client/plasmashell.h>
+#include <KWayland/Client/registry.h>
+#include <KWayland/Client/surface.h>
+
+using namespace KWayland::Client;
+
 StatusBar::StatusBar(QQuickView *parent)
     : QQuickView(parent)
     , m_acticity(new Activity)
+    , m_plasmaShellSurface(nullptr)
 {
     QSettings settings("cutefishos", "locale");
     m_twentyFourTime = settings.value("twentyFour", false).toBool();
@@ -45,8 +54,10 @@ StatusBar::StatusBar(QQuickView *parent)
     setFlags(Qt::FramelessWindowHint | Qt::WindowDoesNotAcceptFocus);
     setColor(Qt::transparent);
 
-    KWindowSystem::setOnDesktop(winId(), NET::OnAllDesktops);
-    KWindowSystem::setType(winId(), NET::Dock);
+    if (!KWindowSystem::isPlatformWayland()) {
+        KWindowSystem::setOnDesktop(winId(), NET::OnAllDesktops);
+        KWindowSystem::setType(winId(), NET::Dock);
+    }
 
     new StatusbarAdaptor(this);
     new AppMenu(this);
@@ -59,6 +70,7 @@ StatusBar::StatusBar(QQuickView *parent)
     setSource(QUrl(QStringLiteral("qrc:/qml/main.qml")));
     setResizeMode(QQuickView::SizeRootObjectToView);
     setScreen(qApp->primaryScreen());
+    setupWaylandPanelSurface();
     updateGeometry();
     setVisible(true);
     initState();
@@ -108,11 +120,18 @@ void StatusBar::updateGeometry()
     setGeometry(windowRect);
     updateViewStruts();
 
-    KWindowEffects::enableBlurBehind(winId(), true);
+    if (KWindowSystem::isPlatformX11()) {
+        KWindowEffects::enableBlurBehind(winId(), true);
+    }
 }
 
 void StatusBar::updateViewStruts()
 {
+    if (KWindowSystem::isPlatformWayland()) {
+        updateWaylandPanelSurface();
+        return;
+    }
+
     const QRect wholeScreen(QPoint(0, 0), screen()->virtualSize());
     const QRect rect = geometry();
     const int topOffset = screen()->geometry().top();
@@ -135,6 +154,63 @@ void StatusBar::updateViewStruts()
                                  strut.bottom_width,
                                  strut.bottom_start,
                                  strut.bottom_end);
+}
+
+void StatusBar::setupWaylandPanelSurface()
+{
+    if (!KWindowSystem::isPlatformWayland()) {
+        return;
+    }
+
+    auto *connection = ConnectionThread::fromApplication(this);
+    if (!connection) {
+        qWarning() << "Wayland connection not available for statusbar panel surface";
+        return;
+    }
+
+    auto *registry = new Registry(this);
+    registry->create(connection);
+
+    connect(registry, &Registry::plasmaShellAnnounced, this,
+            [this, registry](quint32 name, quint32 version) {
+                auto *plasmaShell = registry->createPlasmaShell(name, version, this);
+                if (!plasmaShell) {
+                    qWarning() << "Failed to bind PlasmaShell for statusbar";
+                    return;
+                }
+
+                auto *surface = Surface::fromWindow(this);
+                if (!surface) {
+                    qWarning() << "Failed to acquire Wayland surface for statusbar";
+                    return;
+                }
+
+                m_plasmaShellSurface = plasmaShell->createSurface(surface, this);
+                if (!m_plasmaShellSurface) {
+                    qWarning() << "Failed to create PlasmaShellSurface for statusbar";
+                    return;
+                }
+
+                m_plasmaShellSurface->setRole(PlasmaShellSurface::Role::Panel);
+                m_plasmaShellSurface->setPanelBehavior(PlasmaShellSurface::PanelBehavior::WindowsGoBelow);
+                m_plasmaShellSurface->setSkipTaskbar(true);
+                m_plasmaShellSurface->setSkipSwitcher(true);
+                m_plasmaShellSurface->setPanelTakesFocus(false);
+
+                updateWaylandPanelSurface();
+            });
+
+    registry->setup();
+}
+
+void StatusBar::updateWaylandPanelSurface()
+{
+    if (!m_plasmaShellSurface) {
+        return;
+    }
+
+    m_plasmaShellSurface->setPanelBehavior(PlasmaShellSurface::PanelBehavior::WindowsGoBelow);
+    m_plasmaShellSurface->setPosition(geometry().topLeft());
 }
 
 void StatusBar::initState()

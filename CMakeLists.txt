@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt5 CONFIG REQUIRED Widgets DBus X11Extras Concurrent LinguistTools QuickControls2)
 find_package(KF5WindowSystem REQUIRED)
+find_package(KWayland REQUIRED)
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(XCB_LIBS REQUIRED xcb)
@@ -96,7 +97,7 @@ qt5_add_dbus_adaptor(appmenu_SRCS src/appmenu/com.cutefish.cappmenu.xml
 
 ## statusbar dbus
 qt5_add_dbus_adaptor(DBUS_SOURCES
-                     src/com.cutefish.Statusbar.xml
+                     src/com.wayfish.Statusbar.xml
                      src/statusbar.h StatusBar)
 
 add_executable(cutefish-statusbar ${SRCS} ${appmenu_SRCS} ${DBUS_SOURCES})
@@ -112,6 +113,7 @@ target_link_libraries(cutefish-statusbar
   Qt5::Concurrent
   Qt5::DBus
   KF5::WindowSystem
+  KWayland::Client
   ${XCB_LIBS_LIBRARIES}
 )
 
