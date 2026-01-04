@@ -11,9 +11,20 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(ENABLE_TRANSLATIONS "Build translations" ON)
+
 find_package(Qt5 CONFIG REQUIRED Widgets DBus X11Extras Concurrent LinguistTools QuickControls2)
 find_package(KF5WindowSystem REQUIRED)
-find_package(KWayland REQUIRED)
+find_package(KWayland QUIET)
+
+set(KWAYLAND_TARGET "")
+if (KWayland_FOUND)
+  if (TARGET KWayland::Client)
+    set(KWAYLAND_TARGET KWayland::Client)
+  elseif (TARGET KF5::WaylandClient)
+    set(KWAYLAND_TARGET KF5::WaylandClient)
+  endif()
+endif()
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(XCB_LIBS REQUIRED xcb)
@@ -113,14 +124,23 @@ target_link_libraries(cutefish-statusbar
   Qt5::Concurrent
   Qt5::DBus
   KF5::WindowSystem
-  KWayland::Client
   ${XCB_LIBS_LIBRARIES}
 )
 
-file(GLOB TS_FILES translations/*.ts)
-qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR}/src ${TS_FILES})
-add_custom_target(translations DEPENDS ${QM_FILES} SOURCES ${TS_FILES})
-add_dependencies(cutefish-statusbar translations)
+if (KWAYLAND_TARGET)
+  target_link_libraries(cutefish-statusbar PRIVATE ${KWAYLAND_TARGET})
+  target_compile_definitions(cutefish-statusbar PRIVATE HAVE_KWAYLAND=1)
+else()
+  target_compile_definitions(cutefish-statusbar PRIVATE HAVE_KWAYLAND=0)
+endif()
+
+if (ENABLE_TRANSLATIONS AND Qt5_LUPDATE_EXECUTABLE)
+  file(GLOB TS_FILES translations/*.ts)
+  qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR}/src ${TS_FILES})
+  add_custom_target(translations DEPENDS ${QM_FILES} SOURCES ${TS_FILES})
+  add_dependencies(cutefish-statusbar translations)
+  install(FILES ${QM_FILES} DESTINATION /usr/share/cutefish-statusbar/translations)
+endif()
 
 install(TARGETS cutefish-statusbar RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES ${QM_FILES} DESTINATION /usr/share/cutefish-statusbar/translations)
+install(FILES com.wayfish.Statusbar.service DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/dbus-1/services)

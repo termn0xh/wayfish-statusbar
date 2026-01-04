@@ -23,6 +23,7 @@
 #include <QQuickView>
 #include "activity.h"
 
+#if HAVE_KWAYLAND
 namespace KWayland
 {
 namespace Client
@@ -30,6 +31,7 @@ namespace Client
 class PlasmaShellSurface;
 }
 }
+#endif
 
 class StatusBar : public QQuickView
 {
@@ -65,7 +67,9 @@ private:
     QRect m_screenRect;
     Activity *m_acticity;
     bool m_twentyFourTime;
+#if HAVE_KWAYLAND
     KWayland::Client::PlasmaShellSurface *m_plasmaShellSurface;
+#endif
 };
 
 #endif // STATUSBAR_H

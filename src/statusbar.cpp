@@ -36,17 +36,21 @@
 #include <KWindowSystem>
 #include <KWindowEffects>
 
+#if HAVE_KWAYLAND
 #include <KWayland/Client/connection_thread.h>
 #include <KWayland/Client/plasmashell.h>
 #include <KWayland/Client/registry.h>
 #include <KWayland/Client/surface.h>
 
 using namespace KWayland::Client;
+#endif
 
 StatusBar::StatusBar(QQuickView *parent)
     : QQuickView(parent)
     , m_acticity(new Activity)
+#if HAVE_KWAYLAND
     , m_plasmaShellSurface(nullptr)
+#endif
 {
     QSettings settings("cutefishos", "locale");
     m_twentyFourTime = settings.value("twentyFour", false).toBool();
@@ -128,7 +132,9 @@ void StatusBar::updateGeometry()
 void StatusBar::updateViewStruts()
 {
     if (KWindowSystem::isPlatformWayland()) {
+#if HAVE_KWAYLAND
         updateWaylandPanelSurface();
+#endif
         return;
     }
 
@@ -158,6 +164,7 @@ void StatusBar::updateViewStruts()
 
 void StatusBar::setupWaylandPanelSurface()
 {
+#if HAVE_KWAYLAND
     if (!KWindowSystem::isPlatformWayland()) {
         return;
     }
@@ -201,16 +208,23 @@ void StatusBar::setupWaylandPanelSurface()
             });
 
     registry->setup();
+#else
+    return;
+#endif
 }
 
 void StatusBar::updateWaylandPanelSurface()
 {
+#if HAVE_KWAYLAND
     if (!m_plasmaShellSurface) {
         return;
     }
 
     m_plasmaShellSurface->setPanelBehavior(PlasmaShellSurface::PanelBehavior::WindowsGoBelow);
     m_plasmaShellSurface->setPosition(geometry().topLeft());
+#else
+    return;
+#endif
 }
 
 void StatusBar::initState()
